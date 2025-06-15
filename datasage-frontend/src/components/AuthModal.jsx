@@ -50,7 +50,7 @@ const sendAnalyticsEvent = (event, data) => {
 export default function AuthModal({ open, onClose, onLogin, defaultTab = "login" }) {
   // ---- STATE ----
   const [tab, setTab] = useState(defaultTab); // login | signup
-  const [stage, setStage] = useState("login"); // login, loginOtp, phone, otp, profile, socialPhone, socialOtp, reset
+  const [stage, setStage] = useState("login"); // login, loginOtp, phone, otp, profile, socialPhone, socialOtp, reset, resetOtp
   const [form, setForm] = useState({
     loginId: "",
     password: "",
@@ -104,7 +104,6 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       if (tab === "signup") setStage("phone");
       if (tab === "login") setStage("login");
     }
-    // eslint-disable-next-line
   }, [open, tab, defaultTab]);
 
   // ---- HELPERS ----
@@ -136,7 +135,6 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     setLoading(true);
     setErrors({});
     let loginId = form.loginId.trim();
-    let intent = "Login";
     if (isPhone(loginId)) {
       let phoneFull = `${form.loginCountry}${loginId.replace(/\D/g, "")}`;
       try {
@@ -165,7 +163,8 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
         sendAnalyticsEvent("Login Submitted", { method: "Email", authIntent: "Login" });
         startSession();
         onLogin?.();
-      } catch (err) {
+      } catch (_err) {
+        console.error(_err);
         setErrors({ loginId: "Invalid email/password." });
       }
       setLoading(false);
@@ -189,8 +188,40 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       sendAnalyticsEvent("OTP Verified", { phone: form.loginCountry + form.loginId, authIntent: "Login" });
       startSession();
       onLogin?.();
-    } catch (err) {
+    } catch (_err) {
+      console.error(_err);
       setErrors({ loginOtp: "Incorrect OTP. Please try again." });
+    }
+    setLoading(false);
+  }
+
+  // ---- RESET PASSWORD OTP ----
+  async function handleResetOtp(e) {
+    e.preventDefault();
+    setLoading(true);
+    if (!form.loginOtp || form.loginOtp.length < 4) {
+      setErrors({ loginOtp: 'Enter the OTP sent to your phone' });
+      setLoading(false);
+      return;
+    }
+    let phoneFull = `${form.loginCountry}${form.loginId.replace(/\D/g, '')}`;
+    try {
+      await confirmation.confirm(form.loginOtp);
+      const resp = await fetch('/api/password-reset/send-reset-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneFull, otp: form.loginOtp })
+      });
+      if (resp.ok) {
+        setInfo('Password reset link sent via SMS.');
+        setStage('login');
+      } else {
+        const data = await resp.json().catch(() => ({}));
+        setErrors({ loginOtp: data.error || 'Failed to send reset link.' });
+      }
+    } catch (_err) {
+      console.error(_err);
+      setErrors({ loginOtp: 'Incorrect OTP. Please try again.' });
     }
     setLoading(false);
   }
@@ -262,7 +293,8 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       setStage("profile");
       setInfo("");
       sendAnalyticsEvent("OTP Verified", { phone: form.signupCountry + form.phone, authIntent: "Signup" });
-    } catch (err) {
+    } catch (_err) {
+      console.error(_err);
       setErrors({ otp: "Incorrect OTP. Please try again." });
     }
     setLoading(false);
@@ -312,7 +344,8 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       setStage("profile");
       setInfo("");
       sendAnalyticsEvent("OTP Verified", { phone: form.signupCountry + form.phone, authIntent: "Signup" });
-    } catch (err) {
+    } catch (_err) {
+      console.error(_err);
       setErrors({ otp: "Incorrect OTP. Please try again." });
     }
     setLoading(false);
@@ -350,7 +383,8 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
         onLogin?.();
         setStage("login");
       }, 1200);
-    } catch (err) {
+    } catch (_err) {
+      console.error(_err);
       setErrors({ general: "Failed to create account. Try again." });
     }
     setLoading(false);
@@ -370,17 +404,42 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     setLoading(true);
     setErrors({});
     let loginId = form.loginId.trim();
+    if (isPhone(loginId)) {
+      let phoneFull = `${form.loginCountry}${loginId.replace(/\D/g, "")}`;
+      try {
+        if (!window.recaptchaVerifierReset) {
+          window.recaptchaVerifierReset = new RecaptchaVerifier(
+            'recaptcha-container-reset',
+            { size: 'invisible' },
+            auth
+          );
+        }
+        const confirmationResult = await signInWithPhoneNumber(
+          auth,
+          phoneFull,
+          window.recaptchaVerifierReset
+        );
+        setConfirmation(confirmationResult);
+        setStage('resetOtp');
+        setInfo('OTP sent to your phone');
+        sendAnalyticsEvent('OTP Sent', { phone: phoneFull, authIntent: 'Reset' });
+      } catch (err) {
+        setErrors({ loginId: 'Failed to send OTP. ' + (err.message || '') });
+      }
+      setLoading(false);
+      return;
+    }
     if (!isEmail(loginId)) {
-      setErrors({ loginId: "Enter your registered email to reset password." });
+      setErrors({ loginId: 'Enter your registered email or phone.' });
       setLoading(false);
       return;
     }
     try {
       await sendPasswordResetEmail(auth, loginId);
-      setInfo("Password reset email sent. Check your inbox (link valid for 10 minutes).");
-      sendAnalyticsEvent("Password Reset Email Sent", { email: loginId });
+      setInfo('Password reset email sent. Check your inbox (link valid for 10 minutes).');
+      sendAnalyticsEvent('Password Reset Email Sent', { email: loginId });
     } catch (err) {
-      setErrors({ loginId: "Failed to send reset email: " + (err.message || "") });
+      setErrors({ loginId: 'Failed to send reset email: ' + (err.message || '') });
     }
     setLoading(false);
   }
@@ -405,6 +464,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
         <div id="recaptcha-container-login" />
         <div id="recaptcha-container-signup" />
         <div id="recaptcha-container-social" />
+        <div id="recaptcha-container-reset" />
 
         {/* LOGIN - PHONE/EMAIL */}
         {tab === "login" && stage === "login" && (
@@ -500,7 +560,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
           <form className="auth-form" onSubmit={handleForgotPassword}>
             <input
               name="loginId"
-              placeholder="Registered Email"
+              placeholder="Registered Phone or Email"
               className="auth-input"
               value={form.loginId}
               onChange={handleChange}
@@ -508,7 +568,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
               disabled={loading}
             />
             {errors.loginId && <div className="auth-error">{errors.loginId}</div>}
-            <button className="auth-btn" type="submit" disabled={loading}>{loading ? "Sending..." : "Send Reset Email"}</button>
+            <button className="auth-btn" type="submit" disabled={loading}>{loading ? "Sending..." : isPhone(form.loginId) ? "Send OTP" : "Send Reset Email"}</button>
             {info && <div className="auth-info">{info}</div>}
             <button
               type="button"
@@ -518,6 +578,23 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
             >
               Back to Login
             </button>
+          </form>
+        )}
+
+        {tab === "login" && stage === "resetOtp" && (
+          <form className="auth-form" onSubmit={handleResetOtp}>
+            <input
+              name="loginOtp"
+              placeholder="Enter OTP"
+              className="auth-input"
+              value={form.loginOtp}
+              onChange={handleChange}
+              required
+              disabled={loading}
+            />
+            {errors.loginOtp && <div className="auth-error">{errors.loginOtp}</div>}
+            <button className="auth-btn" type="submit" disabled={loading}>{loading ? "Verifying..." : "Verify OTP"}</button>
+            {info && <div className="auth-info">{info}</div>}
           </form>
         )}
 

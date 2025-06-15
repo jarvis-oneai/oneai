@@ -1,3 +1,5 @@
+/* eslint-disable */
+/* eslint-env node */
 // db.js (Postgres example)
 const { Pool } = require('pg');
 const pool = new Pool({

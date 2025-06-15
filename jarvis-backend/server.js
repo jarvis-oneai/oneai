@@ -3,10 +3,12 @@ require('dotenv').config(); // Load .env variables
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./db'); // DB connection
+const passwordResetRoutes = require('./routes/passwordReset');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use('/api/password-reset', passwordResetRoutes);
 
 // Import User model
 const User = require('./models/Users');
