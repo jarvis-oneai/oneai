@@ -113,6 +113,7 @@
 }
 .auth-error { color: #d63031; font-size: 0.97rem; margin-top: -0.7rem; }
 .auth-info { color: #0096c7; font-size: 0.98rem; margin-top: -0.7rem; }
+.auth-hint { color: #555; font-size: 0.97rem; margin-top: -0.7rem; }
 .mode-btn {
   border: 1px solid #e5e7ef;
   background: #f7fafd;

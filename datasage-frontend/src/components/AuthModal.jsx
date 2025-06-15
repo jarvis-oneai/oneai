@@ -56,7 +56,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     password: "",
     loginOtp: "",
     loginCountry: "+91",
-    loginMode: "", // "password" or "otp" once loginId is identified
+    loginMode: "", // will be set to 'otp' or 'password' when valid
     phone: "",
     signupCountry: "+91",
     otp: "",
@@ -108,7 +108,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
   }, [open, tab, defaultTab]);
 
   // ---- HELPERS ----
-  const isPhone = (v) => /^\d{7,}$/.test(v.replace(/\D/g, "")); // crude, basic
+  const isPhone = (v) => /^\d{10,}$/.test(v.replace(/\D/g, "")); // require full length
   const isEmail = (v) => /\S+@\S+\.\S+/.test(v);
 
   // ---- INPUT CHANGE ----
@@ -117,9 +117,13 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     setForm((f) => {
       const updated = { ...f, [name]: value };
       if (name === "loginId") {
-        if (isPhone(value)) updated.loginMode = "otp";
-        else if (isEmail(value)) updated.loginMode = "password";
-        else updated.loginMode = "";
+        if (isPhone(value)) {
+          updated.loginMode = "otp";
+        } else if (isEmail(value)) {
+          updated.loginMode = "password";
+        } else {
+          updated.loginMode = "";
+        }
       }
       return updated;
     });
@@ -418,7 +422,13 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
               </select>
               <input
                 name="loginId"
-                placeholder="Phone Number or Email"
+                placeholder={
+                  form.loginMode === "otp"
+                    ? "Phone Number"
+                    : form.loginMode === "password"
+                    ? "Email"
+                    : "Phone Number or Email"
+                }
                 className="auth-input"
                 value={form.loginId}
                 onChange={handleChange}
@@ -426,6 +436,9 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
                 style={{ flex: 1 }}
               />
             </div>
+            {!form.loginMode && (
+              <div className="auth-hint">Enter phone for OTP or email for password</div>
+            )}
             {/* Password field only for email login */}
             {form.loginMode === "password" && (
               <input
@@ -451,7 +464,11 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
             )}
             {errors.loginId && <div className="auth-error">{errors.loginId}</div>}
             <button className="auth-btn" type="submit" disabled={loading}>
-              {form.loginMode === "otp" ? "Send OTP" : "Login"}
+              {form.loginMode === "otp"
+                ? "Send OTP"
+                : form.loginMode === "password"
+                ? "Login"
+                : "Continue"}
             </button>
             <div className="auth-divider">or continue with</div>
             <div className="auth-socials">
