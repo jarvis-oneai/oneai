@@ -26,9 +26,24 @@ const OCCUPATIONS = [
   "Others"
 ];
 
+const CLIENT_KEY = "datasage_client_id";
+const SESSION_KEY = "datasage_session";
+function getClientId() {
+  let id = localStorage.getItem(CLIENT_KEY);
+  if (!id) {
+    id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem(CLIENT_KEY, id);
+  }
+  return id;
+}
+function startSession() {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ id: getClientId(), ts: Date.now() }));
+}
+
 const sendAnalyticsEvent = (event, data) => {
-  if (window.gtag) window.gtag("event", event, data);
-  if (window.analytics) window.analytics.track(event, data);
+  const payload = { clientId: getClientId(), ...data };
+  if (window.gtag) window.gtag("event", event, payload);
+  if (window.analytics) window.analytics.track(event, payload);
   // Send to backend if needed.
 };
 
@@ -148,6 +163,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       try {
         await signInWithEmailAndPassword(auth, loginId, form.password);
         sendAnalyticsEvent("Login Submitted", { method: "Email", authIntent: "Login" });
+        startSession();
         onLogin?.();
       } catch (err) {
         setErrors({ loginId: "Invalid email/password." });
@@ -171,6 +187,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     try {
       await confirmation.confirm(form.loginOtp);
       sendAnalyticsEvent("OTP Verified", { phone: form.loginCountry + form.loginId, authIntent: "Login" });
+      startSession();
       onLogin?.();
     } catch (err) {
       setErrors({ loginOtp: "Incorrect OTP. Please try again." });
@@ -262,6 +279,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       return;
     }
     try {
+      sendAnalyticsEvent("Phone Captured", { phone: phoneFull });
       if (!window.recaptchaVerifierSignup) {
         window.recaptchaVerifierSignup = new RecaptchaVerifier(
           'recaptcha-container-signup',
@@ -327,6 +345,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       sendAnalyticsEvent("Signup Successful", { phone: form.signupCountry + form.phone, email: form.email });
       // Persist to your backend/database/segment here.
       setInfo("Signup successful! Redirecting to dashboard...");
+      startSession();
       setTimeout(() => {
         onLogin?.();
         setStage("login");
