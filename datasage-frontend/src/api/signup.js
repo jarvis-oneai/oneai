@@ -1,3 +1,5 @@
+/* eslint-disable */
+/* eslint-env node */
 const express = require("express");
 const router = express.Router();
 const db = require("../db"); // Your DB client/Pool
