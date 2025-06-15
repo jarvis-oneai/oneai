@@ -1,0 +1,124 @@
+/* CSS utilities, theming, and component styles */
+
+:root {
+  --primary: #2976FF;
+  --primary-accent: #00A7FA;
+  --bg-light: #FFFFFF;
+  --bg-lighter: #F7FAFF;
+  --text-main: #1A1A1A;
+  --text-muted: #4D4D4D;
+  --border: #E5E5E5;
+  --card-radius: 22px;
+  --modal-radius: 27px;
+}
+
+/* Navbar buttons */
+.nav-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 8px 7px 8px;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.nav-btn:hover,
+.nav-btn:focus {
+  background: #e6f0ff;
+  color: var(--text-main);
+}
+
+/* Feature Cards */
+.feature-card {
+  width: 315px;
+  background: linear-gradient(110deg, #fff 80%, #d9edff 100%);
+  border-radius: var(--card-radius);
+  padding: 26px 23px 19px 23px;
+  box-shadow: 0 4px 24px 0 rgba(41,118,255,0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 6px 0;
+  transition: box-shadow 0.22s, transform 0.16s;
+}
+
+.feature-card:hover {
+  box-shadow: 0 6px 32px 0 rgba(41,118,255,0.18);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.feature-img {
+  height: 52px;
+  margin-bottom: 13px;
+  border-radius: 13px;
+  background: #eaf1ff;
+  padding: 6px;
+}
+
+.feature-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 7px;
+  color: var(--text-main);
+}
+
+.feature-desc {
+  font-size: 16px;
+  color: #555;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* Auth Modal (login/signup) - additional customizations */
+.auth-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(39,61,99,0.13);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.auth-modal-content {
+  width: 420px;
+  border-radius: var(--modal-radius);
+  background: linear-gradient(135deg, #fff 88%, #f4f9ff 100%);
+  box-shadow: 0 8px 42px 0 rgba(41,118,255,0.14);
+  padding: 38px 36px 30px 36px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Remove input default blue highlight on click */
+input:focus, textarea:focus {
+  border-color: #2976FF;
+  box-shadow: 0 0 0 1.5px #c1d6fb;
+}
+
+/* Button general style */
+button {
+  outline: none;
+}
+
+/* Utility */
+.rounded {
+  border-radius: 22px !important;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+  .feature-card {
+    width: 94vw;
+    min-width: 0;
+  }
+  .auth-modal-content {
+    width: 99vw;
+    min-width: 0;
+    padding: 18px 3vw 25px 3vw;
+  }
+}

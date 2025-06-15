@@ -1,0 +1,41 @@
+/* App-wide CSS for DataSage */
+
+body {
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  background: #F7FAFF;
+  color: #1A1A1A;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: #2976FF;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+a:hover, a:focus {
+  color: #0066FF;
+  text-decoration: underline;
+}
+
+input, textarea, select, button {
+  font-family: inherit;
+  outline: none;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  background: #eaeaea;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c1d6fb;
+  border-radius: 8px;
+}
+
+/* For smooth section scrolling */
+html {
+  scroll-behavior: smooth;
+}

@@ -1,0 +1,15 @@
+<svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="90" height="90" rx="26" fill="#fff"></rect>
+  <!-- Shadow for the big node -->
+  <ellipse cx="31" cy="74" rx="18" ry="4" fill="#0066FF" fill-opacity="0.07"></ellipse>
+  <!-- Main left circle (data node) -->
+  <circle cx="32" cy="45" r="22" fill="#2976FF"></circle>
+  <!-- Top and bottom nodes, more airy -->
+  <circle cx="66" cy="25" r="11" fill="#6CA9FF" fill-opacity="0.6"></circle>
+  <circle cx="66" cy="65" r="11" fill="#6CA9FF" fill-opacity="0.6"></circle>
+  <!-- Curved "connection" lines, thicker, rounded -->
+  <path d="M48,45 Q58,31 66,25" stroke="#2976FF" stroke-width="5" stroke-linecap="round" fill="none"></path>
+  <path d="M48,45 Q58,59 66,65" stroke="#2976FF" stroke-width="5" stroke-linecap="round" fill="none"></path>
+  <!-- Subtle center highlight for modern feel -->
+  <circle cx="32" cy="45" r="10" fill="#fff" fill-opacity="0.08"></circle>
+</svg>

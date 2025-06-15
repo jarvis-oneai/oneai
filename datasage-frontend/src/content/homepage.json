@@ -1,0 +1,30 @@
+{
+  "hero": {
+    "headline": "Push the Possible.",
+    "subheadline": "The AI-driven OS for analytics and business, built for modern teams.",
+    "cta": "Get Started",
+    "bgImage": "/assets/hero-bg.svg"
+  },
+  "about": {
+    "title": "What is DataSage?",
+    "desc": "DataSage unifies business data, AI workflows, and collaboration for creative teams and ambitious companies.",
+    "features": [
+      "Super-fast dashboard setup",
+      "Bring your own LLM (ChatGPT, Gemini, etc.)",
+      "Automate insights and reporting",
+      "Collaborative workspace, real-time"
+    ]
+  },
+  "showcase": [
+    {
+      "img": "/assets/sample1.png",
+      "title": "Marketing OS",
+      "desc": "Automate campaigns, segment customers, and track ROI in real-time."
+    },
+    {
+      "img": "/assets/sample2.png",
+      "title": "AI Finance",
+      "desc": "Budgeting, forecasting, and spend analytics powered by next-gen LLMs."
+    }
+  ]
+}

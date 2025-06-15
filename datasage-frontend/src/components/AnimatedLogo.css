@@ -1,0 +1,38 @@
+.logo-flip {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: inline-block;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.logo-img {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  top: 0;
+  left: 0;
+  opacity: 1;
+  transform: rotateY(0deg);
+  transition: opacity 0.28s, transform 0.32s cubic-bezier(.47,1.64,.41,.8);
+  backface-visibility: hidden;
+}
+
+.logo-front {
+  z-index: 2;
+}
+.logo-front.hide {
+  opacity: 0;
+  transform: rotateY(90deg);
+}
+
+.logo-back {
+  z-index: 3;
+  opacity: 0;
+  transform: rotateY(-90deg);
+}
+.logo-back.show {
+  opacity: 1;
+  transform: rotateY(0deg);
+}

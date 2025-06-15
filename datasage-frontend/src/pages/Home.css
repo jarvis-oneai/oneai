@@ -1,0 +1,223 @@
+/* Home.css — Beautiful landing/feature page styles for DataSage */
+
+.home-root {
+  width: 100%;
+  min-height: 100vh;
+  background: #F7FAFF;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 40px;
+}
+
+/* Hero / What is DataSage Section */
+.home-hero {
+  margin-top: 54px;
+  margin-bottom: 44px;
+  background: linear-gradient(120deg, #ffffff 75%, #f4f8ff 100%);
+  border-radius: 32px;
+  box-shadow: 0 4px 32px 0 rgba(41,118,255,0.08);
+  max-width: 770px;
+  padding: 48px 36px 42px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.home-hero h1 {
+  font-size: 2.6rem;
+  font-weight: 800;
+  margin-bottom: 7px;
+  color: #1A1A1A;
+  letter-spacing: -1px;
+}
+
+.home-hero ul {
+  margin-top: 18px;
+  margin-bottom: 0;
+  padding-left: 20px;
+}
+
+.home-hero li {
+  font-size: 1.18rem;
+  margin-bottom: 6px;
+  color: #323232;
+}
+
+/* Features/Use Cases Grid */
+.home-features-row {
+  width: 100%;
+  max-width: 900px;
+  margin: 42px auto 0 auto;
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.feature-card {
+  width: 325px;
+  background: linear-gradient(110deg, #fff 80%, #e4f0ff 100%);
+  border-radius: 28px;
+  box-shadow: 0 4px 32px 0 rgba(41,118,255,0.09);
+  padding: 36px 23px 27px 23px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  transition: box-shadow 0.23s, transform 0.15s;
+  border: 1.5px solid #E5E5E5;
+}
+
+.feature-card:hover {
+  box-shadow: 0 8px 36px 0 rgba(0,102,255,0.14);
+  border-color: #97c8ff;
+  transform: translateY(-4px) scale(1.025);
+}
+
+.feature-img {
+  height: 60px;
+  width: 60px;
+  margin-bottom: 18px;
+  border-radius: 16px;
+  background: #eaf1ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feature-title {
+  font-size: 1.34rem;
+  font-weight: 700;
+  margin-bottom: 9px;
+  color: #1A1A1A;
+  text-align: center;
+}
+
+.feature-desc {
+  font-size: 1.06rem;
+  color: #505060;
+  text-align: center;
+  line-height: 1.55;
+  font-weight: 500;
+}
+
+/* Section blocks for About, Contact, etc. */
+.home-section {
+  background: #fff;
+  border-radius: 25px;
+  box-shadow: 0 3px 24px 0 rgba(41,118,255,0.04);
+  max-width: 800px;
+  margin: 50px auto 0 auto;
+  padding: 36px 36px 32px 36px;
+}
+
+.home-section h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2976FF;
+  margin-bottom: 15px;
+}
+
+.home-section p,
+.home-section li {
+  font-size: 1.10rem;
+  color: #23232f;
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+/* Responsive Styles */
+@media (max-width: 1000px) {
+  .home-hero {
+    max-width: 96vw;
+    padding: 28px 5vw 28px 5vw;
+  }
+  .home-section {
+    max-width: 98vw;
+    padding: 24px 3vw 20px 3vw;
+  }
+  .home-features-row {
+    max-width: 99vw;
+    gap: 19px;
+  }
+}
+
+@media (max-width: 650px) {
+  .feature-card {
+    width: 95vw;
+    min-width: unset;
+    padding: 20px 10px 14px 10px;
+    border-radius: 17px;
+  }
+  .home-hero {
+    border-radius: 16px;
+    padding: 17px 2vw 14px 2vw;
+    margin-top: 19px;
+  }
+  .home-section {
+    border-radius: 15px;
+    padding: 13px 1vw 13px 1vw;
+    margin-top: 22px;
+  }
+}
+
+/* Misc */
+hr.section-divider {
+  width: 70px;
+  height: 3px;
+  border: none;
+  background: linear-gradient(90deg, #2976FF, #00A7FA 70%);
+  border-radius: 2px;
+  margin: 22px auto 30px auto;
+}
+
+/* Contact Section Styling */
+.home-section form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.home-section input[type="email"], 
+.home-section textarea {
+  width: 100%;
+  max-width: 400px;
+  padding: 14px 13px;
+  border: 1.3px solid #e5e5e5;
+  border-radius: 12px;
+  font-size: 17px;
+  font-family: inherit;
+  margin-bottom: 0;
+  background: #f7faff;
+  transition: border 0.17s;
+}
+
+.home-section input[type="email"]:focus,
+.home-section textarea:focus {
+  border-color: #2976FF;
+  outline: none;
+}
+
+.home-section button[type="submit"] {
+  width: 210px;
+  border-radius: 13px;
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px 0 rgba(41,118,255,0.13);
+  transition: background 0.18s;
+}
+
+@media (max-width: 600px) {
+  .home-section input[type="email"], 
+  .home-section textarea,
+  .home-section button[type="submit"] {
+    max-width: 100%;
+    width: 100%;
+    font-size: 16px;
+  }
+}
