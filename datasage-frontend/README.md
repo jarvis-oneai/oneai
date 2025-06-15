@@ -30,11 +30,6 @@ datasage-frontend/
 ├── package.json
 ├── README.md
 └── requirements.txt # Python requirements for backend/admin if any
-
-yaml
-Copy
-Edit
-
 The backend (`jarvis-backend/`) is in the same repo and handles user, DB, and API endpoints.
 
 ---
@@ -44,31 +39,35 @@ The backend (`jarvis-backend/`) is in the same repo and handles user, DB, and AP
 ### **Frontend**
 
 1. **Install dependencies**
-npm install
-
-markdown
-Copy
-Edit
-2. **Add your Firebase config**
-- Copy your Firebase config into `src/firebase.js`
+   ```bash
+   npm install
+   ```
+2. **Configure Firebase**
+   Create a `.env` file in `datasage-frontend/` (or use environment variables) with the following keys:
+   ```
+   VITE_FIREBASE_API_KEY=your-api-key
+   VITE_FIREBASE_AUTH_DOMAIN=your-auth-domain
+   VITE_FIREBASE_PROJECT_ID=your-project-id
+   VITE_FIREBASE_STORAGE_BUCKET=your-storage-bucket
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+   VITE_FIREBASE_APP_ID=your-app-id
+   VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id
+   ```
 3. **Start the app**
-npm run dev
-
-markdown
-Copy
-Edit
+   ```bash
+   npm run dev
+   ```
 
 ### **Backend**
 
 1. See `/jarvis-backend/README.md` for backend setup
 2. Create your `.env` file with DB/Firebase/OpenAI/etc. keys
 3. Start server:
+
+```bash
 npm install
 npm run start
-
-yaml
-Copy
-Edit
+```
 
 ---
 
