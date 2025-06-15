@@ -26,9 +26,24 @@ const OCCUPATIONS = [
   "Others"
 ];
 
+const CLIENT_KEY = "datasage_client_id";
+const SESSION_KEY = "datasage_session";
+function getClientId() {
+  let id = localStorage.getItem(CLIENT_KEY);
+  if (!id) {
+    id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem(CLIENT_KEY, id);
+  }
+  return id;
+}
+function startSession() {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ id: getClientId(), ts: Date.now() }));
+}
+
 const sendAnalyticsEvent = (event, data) => {
-  if (window.gtag) window.gtag("event", event, data);
-  if (window.analytics) window.analytics.track(event, data);
+  const payload = { clientId: getClientId(), ...data };
+  if (window.gtag) window.gtag("event", event, payload);
+  if (window.analytics) window.analytics.track(event, payload);
   // Send to backend if needed.
 };
 
@@ -41,7 +56,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     password: "",
     loginOtp: "",
     loginCountry: "+91",
-    loginMode: "password", // or "otp"
+    loginMode: "", // "password" or "otp" once loginId is identified
     phone: "",
     signupCountry: "+91",
     otp: "",
@@ -69,7 +84,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
         password: "",
         loginOtp: "",
         loginCountry: "+91",
-        loginMode: "password",
+        loginMode: "",
         phone: "",
         signupCountry: "+91",
         otp: "",
@@ -99,8 +114,16 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
   // ---- INPUT CHANGE ----
   function handleChange(e) {
     const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
-    setErrors((e) => ({ ...e, [name]: undefined }));
+    setForm((f) => {
+      const updated = { ...f, [name]: value };
+      if (name === "loginId") {
+        if (isPhone(value)) updated.loginMode = "otp";
+        else if (isEmail(value)) updated.loginMode = "password";
+        else updated.loginMode = "";
+      }
+      return updated;
+    });
+    setErrors((errs) => ({ ...errs, [name]: undefined }));
   }
 
   // ---- LOGIN FORM SUBMIT ----
@@ -112,27 +135,22 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     let intent = "Login";
     if (isPhone(loginId)) {
       let phoneFull = `${form.loginCountry}${loginId.replace(/\D/g, "")}`;
-      if (form.loginMode === "otp") {
-        try {
-          if (!window.recaptchaVerifierLogin) {
-            window.recaptchaVerifierLogin = new RecaptchaVerifier(
-              'recaptcha-container-login',
-              { size: 'invisible' },
-              auth
-            );
-          }
-          const confirmationResult = await signInWithPhoneNumber(auth, phoneFull, window.recaptchaVerifierLogin);
-          setConfirmation(confirmationResult);
-          setStage("loginOtp");
-          setInfo("OTP sent to your phone");
-          sendAnalyticsEvent("OTP Sent", { phone: phoneFull, authIntent: "Login" });
-        } catch (err) {
-          setErrors({ loginId: "Failed to send OTP. " + (err.message || "") });
+      try {
+        if (!window.recaptchaVerifierLogin) {
+          window.recaptchaVerifierLogin = new RecaptchaVerifier(
+            'recaptcha-container-login',
+            { size: 'invisible' },
+            auth
+          );
         }
-        setLoading(false);
-        return;
+        const confirmationResult = await signInWithPhoneNumber(auth, phoneFull, window.recaptchaVerifierLogin);
+        setConfirmation(confirmationResult);
+        setStage("loginOtp");
+        setInfo("OTP sent to your phone");
+        sendAnalyticsEvent("OTP Sent", { phone: phoneFull, authIntent: "Login" });
+      } catch (err) {
+        setErrors({ loginId: "Failed to send OTP. " + (err.message || "") });
       }
-      setErrors({ loginId: "Login by password is not supported for phone. Use OTP." });
       setLoading(false);
       return;
     }
@@ -141,6 +159,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       try {
         await signInWithEmailAndPassword(auth, loginId, form.password);
         sendAnalyticsEvent("Login Submitted", { method: "Email", authIntent: "Login" });
+        startSession();
         onLogin?.();
       } catch (err) {
         setErrors({ loginId: "Invalid email/password." });
@@ -164,6 +183,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     try {
       await confirmation.confirm(form.loginOtp);
       sendAnalyticsEvent("OTP Verified", { phone: form.loginCountry + form.loginId, authIntent: "Login" });
+      startSession();
       onLogin?.();
     } catch (err) {
       setErrors({ loginOtp: "Incorrect OTP. Please try again." });
@@ -255,6 +275,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       return;
     }
     try {
+      sendAnalyticsEvent("Phone Captured", { phone: phoneFull });
       if (!window.recaptchaVerifierSignup) {
         window.recaptchaVerifierSignup = new RecaptchaVerifier(
           'recaptcha-container-signup',
@@ -320,6 +341,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       sendAnalyticsEvent("Signup Successful", { phone: form.signupCountry + form.phone, email: form.email });
       // Persist to your backend/database/segment here.
       setInfo("Signup successful! Redirecting to dashboard...");
+      startSession();
       setTimeout(() => {
         onLogin?.();
         setStage("login");
@@ -328,6 +350,14 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       setErrors({ general: "Failed to create account. Try again." });
     }
     setLoading(false);
+  }
+
+  // ---- FORGOT PASSWORD ----
+  // Show reset password form
+  function startForgotPassword() {
+    setStage("reset");
+    setErrors({});
+    setInfo("");
   }
 
   // ---- FORGOT PASSWORD ----
@@ -344,6 +374,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     try {
       await sendPasswordResetEmail(auth, loginId);
       setInfo("Password reset email sent. Check your inbox (link valid for 10 minutes).");
+      sendAnalyticsEvent("Password Reset Email Sent", { email: loginId });
     } catch (err) {
       setErrors({ loginId: "Failed to send reset email: " + (err.message || "") });
     }
@@ -395,23 +426,8 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
                 style={{ flex: 1 }}
               />
             </div>
-            {/* If phone, show mode selection */}
-            {isPhone(form.loginId) ? (
-              <div style={{ display: "flex", gap: 8, margin: "10px 0" }}>
-                <button
-                  type="button"
-                  className={form.loginMode === "otp" ? "mode-btn active" : "mode-btn"}
-                  onClick={() => setForm((f) => ({ ...f, loginMode: "otp" }))}
-                >Login with OTP</button>
-                <button
-                  type="button"
-                  className={form.loginMode === "password" ? "mode-btn active" : "mode-btn"}
-                  onClick={() => setForm((f) => ({ ...f, loginMode: "password" }))}
-                >Login with Password</button>
-              </div>
-            ) : null}
             {/* Password field only for email login */}
-            {form.loginMode === "password" && !isPhone(form.loginId) && (
+            {form.loginMode === "password" && (
               <input
                 name="password"
                 type="password"
@@ -422,12 +438,12 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
               />
             )}
             {/* Forgot password */}
-            {form.loginMode === "password" && isEmail(form.loginId) && (
+            {form.loginMode === "password" && (
               <button
                 type="button"
                 className="forgot-link"
                 style={{ color: "#2976FF", background: "none", border: "none", fontWeight: 700, margin: "6px 0 0 0", textAlign: "left", fontSize: "1.06rem", cursor: "pointer" }}
-                onClick={handleForgotPassword}
+                onClick={startForgotPassword}
                 disabled={loading}
               >
                 Forgot Password?
@@ -435,7 +451,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
             )}
             {errors.loginId && <div className="auth-error">{errors.loginId}</div>}
             <button className="auth-btn" type="submit" disabled={loading}>
-              {form.loginMode === "otp" && isPhone(form.loginId) ? "Send OTP" : "Login"}
+              {form.loginMode === "otp" ? "Send OTP" : "Login"}
             </button>
             <div className="auth-divider">or continue with</div>
             <div className="auth-socials">
@@ -460,6 +476,31 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
             {errors.loginOtp && <div className="auth-error">{errors.loginOtp}</div>}
             <button className="auth-btn" type="submit" disabled={loading}>{loading ? "Verifying..." : "Verify OTP"}</button>
             {info && <div className="auth-info">{info}</div>}
+          </form>
+        )}
+        {/* LOGIN - RESET PASSWORD */}
+        {tab === "login" && stage === "reset" && (
+          <form className="auth-form" onSubmit={handleForgotPassword}>
+            <input
+              name="loginId"
+              placeholder="Registered Email"
+              className="auth-input"
+              value={form.loginId}
+              onChange={handleChange}
+              required
+              disabled={loading}
+            />
+            {errors.loginId && <div className="auth-error">{errors.loginId}</div>}
+            <button className="auth-btn" type="submit" disabled={loading}>{loading ? "Sending..." : "Send Reset Email"}</button>
+            {info && <div className="auth-info">{info}</div>}
+            <button
+              type="button"
+              className="mode-btn"
+              onClick={() => { setStage("login"); setInfo(""); setErrors({}); }}
+              style={{ marginTop: 8 }}
+            >
+              Back to Login
+            </button>
           </form>
         )}
 
