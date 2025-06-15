@@ -331,6 +331,14 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
   }
 
   // ---- FORGOT PASSWORD ----
+  // Show reset password form
+  function startForgotPassword() {
+    setStage("reset");
+    setErrors({});
+    setInfo("");
+  }
+
+  // ---- FORGOT PASSWORD ----
   async function handleForgotPassword(e) {
     e.preventDefault();
     setLoading(true);
@@ -427,7 +435,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
                 type="button"
                 className="forgot-link"
                 style={{ color: "#2976FF", background: "none", border: "none", fontWeight: 700, margin: "6px 0 0 0", textAlign: "left", fontSize: "1.06rem", cursor: "pointer" }}
-                onClick={handleForgotPassword}
+                onClick={startForgotPassword}
                 disabled={loading}
               >
                 Forgot Password?
@@ -460,6 +468,31 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
             {errors.loginOtp && <div className="auth-error">{errors.loginOtp}</div>}
             <button className="auth-btn" type="submit" disabled={loading}>{loading ? "Verifying..." : "Verify OTP"}</button>
             {info && <div className="auth-info">{info}</div>}
+          </form>
+        )}
+        {/* LOGIN - RESET PASSWORD */}
+        {tab === "login" && stage === "reset" && (
+          <form className="auth-form" onSubmit={handleForgotPassword}>
+            <input
+              name="loginId"
+              placeholder="Registered Email"
+              className="auth-input"
+              value={form.loginId}
+              onChange={handleChange}
+              required
+              disabled={loading}
+            />
+            {errors.loginId && <div className="auth-error">{errors.loginId}</div>}
+            <button className="auth-btn" type="submit" disabled={loading}>{loading ? "Sending..." : "Send Reset Email"}</button>
+            {info && <div className="auth-info">{info}</div>}
+            <button
+              type="button"
+              className="mode-btn"
+              onClick={() => { setStage("login"); setInfo(""); setErrors({}); }}
+              style={{ marginTop: 8 }}
+            >
+              Back to Login
+            </button>
           </form>
         )}
 
