@@ -99,8 +99,14 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
   // ---- INPUT CHANGE ----
   function handleChange(e) {
     const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
-    setErrors((e) => ({ ...e, [name]: undefined }));
+    setForm((f) => {
+      const updated = { ...f, [name]: value };
+      if (name === "loginId") {
+        updated.loginMode = isPhone(value) ? "otp" : "password";
+      }
+      return updated;
+    });
+    setErrors((errs) => ({ ...errs, [name]: undefined }));
   }
 
   // ---- LOGIN FORM SUBMIT ----
@@ -112,27 +118,22 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     let intent = "Login";
     if (isPhone(loginId)) {
       let phoneFull = `${form.loginCountry}${loginId.replace(/\D/g, "")}`;
-      if (form.loginMode === "otp") {
-        try {
-          if (!window.recaptchaVerifierLogin) {
-            window.recaptchaVerifierLogin = new RecaptchaVerifier(
-              'recaptcha-container-login',
-              { size: 'invisible' },
-              auth
-            );
-          }
-          const confirmationResult = await signInWithPhoneNumber(auth, phoneFull, window.recaptchaVerifierLogin);
-          setConfirmation(confirmationResult);
-          setStage("loginOtp");
-          setInfo("OTP sent to your phone");
-          sendAnalyticsEvent("OTP Sent", { phone: phoneFull, authIntent: "Login" });
-        } catch (err) {
-          setErrors({ loginId: "Failed to send OTP. " + (err.message || "") });
+      try {
+        if (!window.recaptchaVerifierLogin) {
+          window.recaptchaVerifierLogin = new RecaptchaVerifier(
+            'recaptcha-container-login',
+            { size: 'invisible' },
+            auth
+          );
         }
-        setLoading(false);
-        return;
+        const confirmationResult = await signInWithPhoneNumber(auth, phoneFull, window.recaptchaVerifierLogin);
+        setConfirmation(confirmationResult);
+        setStage("loginOtp");
+        setInfo("OTP sent to your phone");
+        sendAnalyticsEvent("OTP Sent", { phone: phoneFull, authIntent: "Login" });
+      } catch (err) {
+        setErrors({ loginId: "Failed to send OTP. " + (err.message || "") });
       }
-      setErrors({ loginId: "Login by password is not supported for phone. Use OTP." });
       setLoading(false);
       return;
     }
@@ -352,6 +353,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     try {
       await sendPasswordResetEmail(auth, loginId);
       setInfo("Password reset email sent. Check your inbox (link valid for 10 minutes).");
+      sendAnalyticsEvent("Password Reset Email Sent", { email: loginId });
     } catch (err) {
       setErrors({ loginId: "Failed to send reset email: " + (err.message || "") });
     }
@@ -403,23 +405,8 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
                 style={{ flex: 1 }}
               />
             </div>
-            {/* If phone, show mode selection */}
-            {isPhone(form.loginId) ? (
-              <div style={{ display: "flex", gap: 8, margin: "10px 0" }}>
-                <button
-                  type="button"
-                  className={form.loginMode === "otp" ? "mode-btn active" : "mode-btn"}
-                  onClick={() => setForm((f) => ({ ...f, loginMode: "otp" }))}
-                >Login with OTP</button>
-                <button
-                  type="button"
-                  className={form.loginMode === "password" ? "mode-btn active" : "mode-btn"}
-                  onClick={() => setForm((f) => ({ ...f, loginMode: "password" }))}
-                >Login with Password</button>
-              </div>
-            ) : null}
             {/* Password field only for email login */}
-            {form.loginMode === "password" && !isPhone(form.loginId) && (
+            {form.loginMode === "password" && (
               <input
                 name="password"
                 type="password"
@@ -430,7 +417,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
               />
             )}
             {/* Forgot password */}
-            {form.loginMode === "password" && isEmail(form.loginId) && (
+            {form.loginMode === "password" && (
               <button
                 type="button"
                 className="forgot-link"
@@ -443,7 +430,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
             )}
             {errors.loginId && <div className="auth-error">{errors.loginId}</div>}
             <button className="auth-btn" type="submit" disabled={loading}>
-              {form.loginMode === "otp" && isPhone(form.loginId) ? "Send OTP" : "Login"}
+              {form.loginMode === "otp" ? "Send OTP" : "Login"}
             </button>
             <div className="auth-divider">or continue with</div>
             <div className="auth-socials">
