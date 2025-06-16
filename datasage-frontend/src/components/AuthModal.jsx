@@ -70,6 +70,18 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
   // ---- MODAL RESET ----
   React.useEffect(() => {
     if (!open) {
+      if (window.recaptchaVerifierLogin) {
+        window.recaptchaVerifierLogin.clear();
+        window.recaptchaVerifierLogin = null;
+      }
+      if (window.recaptchaVerifierSignup) {
+        window.recaptchaVerifierSignup.clear();
+        window.recaptchaVerifierSignup = null;
+      }
+      if (window.recaptchaVerifierSocial) {
+        window.recaptchaVerifierSocial.clear();
+        window.recaptchaVerifierSocial = null;
+      }
       setTab(defaultTab);
       setStage("login");
       setForm({
