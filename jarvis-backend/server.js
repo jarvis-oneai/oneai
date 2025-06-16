@@ -4,11 +4,13 @@ const express = require('express');
 const cors = require('cors');
 const sequelize = require('./db'); // DB connection
 const passwordResetRoutes = require('./routes/passwordReset');
+const otpRoutes = require('./routes/otp');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use('/api/password-reset', passwordResetRoutes);
+app.use('/api/otp', otpRoutes);
 
 // Import User model
 const User = require('./models/Users');

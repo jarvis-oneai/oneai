@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import "./AuthModal.css";
 import { auth, googleProvider, facebookProvider } from "../firebase";
 import {
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
   signInWithPopup,
   sendPasswordResetEmail,
   signInWithEmailAndPassword
@@ -38,6 +36,24 @@ const sendAnalyticsEvent = (event, data) => {
   if (window.analytics) window.analytics.track(event, payload);
   // Send to backend if needed.
 };
+
+async function sendOtp(phone) {
+  const resp = await fetch('/api/otp/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone })
+  });
+  if (!resp.ok) throw new Error('Failed to send OTP');
+}
+
+async function verifyOtp(phone, otp) {
+  const resp = await fetch('/api/otp/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, otp })
+  });
+  if (!resp.ok) throw new Error('Invalid or expired OTP');
+}
 
 export default function AuthModal({ open, onClose, onLogin, defaultTab = "login" }) {
   // ---- STATE ----
@@ -144,15 +160,8 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     if (isPhone(loginId)) {
       let phoneFull = `${form.loginCountry}${loginId.replace(/\D/g, "")}`;
       try {
-        if (!window.recaptchaVerifierLogin) {
-          window.recaptchaVerifierLogin = new RecaptchaVerifier(
-            'recaptcha-container-login',
-            { size: 'invisible' },
-            auth
-          );
-        }
-        const confirmationResult = await signInWithPhoneNumber(auth, phoneFull, window.recaptchaVerifierLogin);
-        setConfirmation(confirmationResult);
+        await sendOtp(phoneFull);
+        setConfirmation({ phone: phoneFull });
         setStage("loginOtp");
         setInfo("OTP sent to your phone");
         sendAnalyticsEvent("OTP Sent", { phone: phoneFull, authIntent: "Login" });
@@ -190,8 +199,8 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       return;
     }
     try {
-      await confirmation.confirm(form.loginOtp);
-      sendAnalyticsEvent("OTP Verified", { phone: form.loginCountry + form.loginId, authIntent: "Login" });
+      await verifyOtp(confirmation.phone, form.loginOtp);
+      sendAnalyticsEvent("OTP Verified", { phone: confirmation.phone, authIntent: "Login" });
       startSession();
       onLogin?.();
     } catch (_err) {
@@ -266,15 +275,8 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       return;
     }
     try {
-      if (!window.recaptchaVerifierSocial) {
-        window.recaptchaVerifierSocial = new RecaptchaVerifier(
-          'recaptcha-container-social',
-          { size: 'invisible' },
-          auth
-        );
-      }
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneFull, window.recaptchaVerifierSocial);
-      setConfirmation(confirmationResult);
+      await sendOtp(phoneFull);
+      setConfirmation({ phone: phoneFull });
       setStage("socialOtp");
       setInfo("OTP sent to your phone");
       sendAnalyticsEvent("OTP Sent", { phone: phoneFull, authIntent: "Signup" });
@@ -294,10 +296,10 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       return;
     }
     try {
-      await confirmation.confirm(form.otp);
+      await verifyOtp(confirmation.phone, form.otp);
       setStage("profile");
       setInfo("");
-      sendAnalyticsEvent("OTP Verified", { phone: form.signupCountry + form.phone, authIntent: "Signup" });
+      sendAnalyticsEvent("OTP Verified", { phone: confirmation.phone, authIntent: "Signup" });
     } catch (_err) {
       console.error(_err);
       setErrors({ otp: "Incorrect OTP. Please try again." });
@@ -317,15 +319,8 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     }
     try {
       sendAnalyticsEvent("Phone Captured", { phone: phoneFull });
-      if (!window.recaptchaVerifierSignup) {
-        window.recaptchaVerifierSignup = new RecaptchaVerifier(
-          'recaptcha-container-signup',
-          { size: 'invisible' },
-          auth
-        );
-      }
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneFull, window.recaptchaVerifierSignup);
-      setConfirmation(confirmationResult);
+      await sendOtp(phoneFull);
+      setConfirmation({ phone: phoneFull });
       setStage("otp");
       setInfo("OTP sent to your phone");
       sendAnalyticsEvent("OTP Sent", { phone: phoneFull, authIntent: "Signup" });
@@ -345,10 +340,10 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       return;
     }
     try {
-      await confirmation.confirm(form.otp);
+      await verifyOtp(confirmation.phone, form.otp);
       setStage("profile");
       setInfo("");
-      sendAnalyticsEvent("OTP Verified", { phone: form.signupCountry + form.phone, authIntent: "Signup" });
+      sendAnalyticsEvent("OTP Verified", { phone: confirmation.phone, authIntent: "Signup" });
     } catch (_err) {
       console.error(_err);
       setErrors({ otp: "Incorrect OTP. Please try again." });
@@ -462,10 +457,6 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
           <span style={{ flex: 1 }} />
           <button className="close-btn" onClick={onClose}>&times;</button>
         </div>
-        <div id="recaptcha-container-login" />
-        <div id="recaptcha-container-signup" />
-        <div id="recaptcha-container-social" />
-        <div id="recaptcha-container-reset" />
 
         {/* LOGIN - PHONE/EMAIL */}
         {tab === "login" && stage === "login" && (
