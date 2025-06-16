@@ -6,6 +6,7 @@ const router = express.Router();
 const otpStore = new Map();
 
 const sns = new SNSClient({ region: process.env.AWS_REGION });
+const snsConfigured = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
 
 router.post('/send', async (req, res) => {
   const { phone } = req.body;
@@ -15,13 +16,25 @@ router.post('/send', async (req, res) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   otpStore.set(phone, { otp, expires: Date.now() + 5 * 60 * 1000 });
   try {
-    await sns.send(new PublishCommand({
-      Message: `Your verification code is ${otp}`,
-      PhoneNumber: phone,
-    }));
-    res.json({ success: true });
+    if (snsConfigured) {
+      await sns.send(
+        new PublishCommand({
+          Message: `Your verification code is ${otp}`,
+          PhoneNumber: phone,
+        }),
+      );
+    } else {
+      console.log(`Mock OTP for ${phone}: ${otp}`);
+    }
+    res.json({ success: true, otp: snsConfigured ? undefined : otp });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to send OTP' });
+    console.error('OTP send failed:', err);
+    if (!snsConfigured) {
+      res.json({ success: true, otp });
+    } else {
+      res.status(500).json({ error: 'Failed to send OTP' });
+    }
+
   }
 });
 

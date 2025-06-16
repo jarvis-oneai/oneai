@@ -43,7 +43,14 @@ async function sendOtp(phone) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone })
   });
-  if (!resp.ok) throw new Error('Failed to send OTP');
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data.success) {
+    throw new Error(data.error || 'Failed to send OTP');
+  }
+  if (data.otp) {
+    console.log('OTP', data.otp);
+  }
+  return data.otp;
 }
 
 async function verifyOtp(phone, otp) {
@@ -52,7 +59,11 @@ async function verifyOtp(phone, otp) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone, otp })
   });
-  if (!resp.ok) throw new Error('Invalid or expired OTP');
+  
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data.success) {
+    throw new Error(data.error || 'Invalid or expired OTP');
+  }
 }
 
 export default function AuthModal({ open, onClose, onLogin, defaultTab = "login" }) {
