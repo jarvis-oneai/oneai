@@ -59,6 +59,7 @@ async function verifyOtp(phone, otp) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone, otp })
   });
+  
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok || !data.success) {
     throw new Error(data.error || 'Invalid or expired OTP');
@@ -96,6 +97,18 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
   // ---- MODAL RESET ----
   React.useEffect(() => {
     if (!open) {
+      if (window.recaptchaVerifierLogin) {
+        window.recaptchaVerifierLogin.clear();
+        window.recaptchaVerifierLogin = null;
+      }
+      if (window.recaptchaVerifierSignup) {
+        window.recaptchaVerifierSignup.clear();
+        window.recaptchaVerifierSignup = null;
+      }
+      if (window.recaptchaVerifierSocial) {
+        window.recaptchaVerifierSocial.clear();
+        window.recaptchaVerifierSocial = null;
+      }
       setTab(defaultTab);
       setStage("login");
       setForm({
