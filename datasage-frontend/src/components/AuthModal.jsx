@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import "./AuthModal.css";
 import { auth, googleProvider, facebookProvider } from "../firebase";
 import {
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
   signInWithPopup,
   sendPasswordResetEmail,
   signInWithEmailAndPassword
@@ -17,14 +15,6 @@ const COUNTRY_CODES = [
   { code: "+61", name: "AUS" }
 ];
 
-const OCCUPATIONS = [
-  "Student",
-  "Graduate/Post Graduate : Searching for Job",
-  "Working - Non Tech",
-  "Working - Tech",
-  "Self Employed",
-  "Others"
-];
 
 const CLIENT_KEY = "datasage_client_id";
 const SESSION_KEY = "datasage_session";
@@ -47,6 +37,24 @@ const sendAnalyticsEvent = (event, data) => {
   // Send to backend if needed.
 };
 
+async function sendOtp(phone) {
+  const resp = await fetch('/api/otp/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone })
+  });
+  if (!resp.ok) throw new Error('Failed to send OTP');
+}
+
+async function verifyOtp(phone, otp) {
+  const resp = await fetch('/api/otp/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, otp })
+  });
+  if (!resp.ok) throw new Error('Invalid or expired OTP');
+}
+
 export default function AuthModal({ open, onClose, onLogin, defaultTab = "login" }) {
   // ---- STATE ----
   const [tab, setTab] = useState(defaultTab); // login | signup
@@ -62,10 +70,11 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     otp: "",
     name: "",
     email: "",
+    address1: "",
+    address2: "",
+    address3: "",
     city: "",
-    occupation: "",
-    otherOccupation: "",
-    age: "",
+    state: "",
     pincode: ""
   });
   const [confirmation, setConfirmation] = useState(null);
@@ -90,10 +99,11 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
         otp: "",
         name: "",
         email: "",
+        address1: "",
+        address2: "",
+        address3: "",
         city: "",
-        occupation: "",
-        otherOccupation: "",
-        age: "",
+        state: "",
         pincode: ""
       });
       setConfirmation(null);
@@ -138,15 +148,8 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     if (isPhone(loginId)) {
       let phoneFull = `${form.loginCountry}${loginId.replace(/\D/g, "")}`;
       try {
-        if (!window.recaptchaVerifierLogin) {
-          window.recaptchaVerifierLogin = new RecaptchaVerifier(
-            'recaptcha-container-login',
-            { size: 'invisible' },
-            auth
-          );
-        }
-        const confirmationResult = await signInWithPhoneNumber(auth, phoneFull, window.recaptchaVerifierLogin);
-        setConfirmation(confirmationResult);
+        await sendOtp(phoneFull);
+        setConfirmation({ phone: phoneFull });
         setStage("loginOtp");
         setInfo("OTP sent to your phone");
         sendAnalyticsEvent("OTP Sent", { phone: phoneFull, authIntent: "Login" });
@@ -184,8 +187,8 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       return;
     }
     try {
-      await confirmation.confirm(form.loginOtp);
-      sendAnalyticsEvent("OTP Verified", { phone: form.loginCountry + form.loginId, authIntent: "Login" });
+      await verifyOtp(confirmation.phone, form.loginOtp);
+      sendAnalyticsEvent("OTP Verified", { phone: confirmation.phone, authIntent: "Login" });
       startSession();
       onLogin?.();
     } catch (_err) {
@@ -206,7 +209,6 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     }
     let phoneFull = `${form.loginCountry}${form.loginId.replace(/\D/g, '')}`;
     try {
-      await confirmation.confirm(form.loginOtp);
       const resp = await fetch('/api/password-reset/send-reset-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -217,11 +219,11 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
         setStage('login');
       } else {
         const data = await resp.json().catch(() => ({}));
-        setErrors({ loginOtp: data.error || 'Failed to send reset link.' });
+        setErrors({ loginOtp: data.error || 'Invalid or expired OTP.' });
       }
     } catch (_err) {
       console.error(_err);
-      setErrors({ loginOtp: 'Incorrect OTP. Please try again.' });
+      setErrors({ loginOtp: 'Failed to verify OTP.' });
     }
     setLoading(false);
   }
@@ -261,15 +263,8 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       return;
     }
     try {
-      if (!window.recaptchaVerifierSocial) {
-        window.recaptchaVerifierSocial = new RecaptchaVerifier(
-          'recaptcha-container-social',
-          { size: 'invisible' },
-          auth
-        );
-      }
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneFull, window.recaptchaVerifierSocial);
-      setConfirmation(confirmationResult);
+      await sendOtp(phoneFull);
+      setConfirmation({ phone: phoneFull });
       setStage("socialOtp");
       setInfo("OTP sent to your phone");
       sendAnalyticsEvent("OTP Sent", { phone: phoneFull, authIntent: "Signup" });
@@ -289,10 +284,10 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       return;
     }
     try {
-      await confirmation.confirm(form.otp);
+      await verifyOtp(confirmation.phone, form.otp);
       setStage("profile");
       setInfo("");
-      sendAnalyticsEvent("OTP Verified", { phone: form.signupCountry + form.phone, authIntent: "Signup" });
+      sendAnalyticsEvent("OTP Verified", { phone: confirmation.phone, authIntent: "Signup" });
     } catch (_err) {
       console.error(_err);
       setErrors({ otp: "Incorrect OTP. Please try again." });
@@ -312,15 +307,8 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     }
     try {
       sendAnalyticsEvent("Phone Captured", { phone: phoneFull });
-      if (!window.recaptchaVerifierSignup) {
-        window.recaptchaVerifierSignup = new RecaptchaVerifier(
-          'recaptcha-container-signup',
-          { size: 'invisible' },
-          auth
-        );
-      }
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneFull, window.recaptchaVerifierSignup);
-      setConfirmation(confirmationResult);
+      await sendOtp(phoneFull);
+      setConfirmation({ phone: phoneFull });
       setStage("otp");
       setInfo("OTP sent to your phone");
       sendAnalyticsEvent("OTP Sent", { phone: phoneFull, authIntent: "Signup" });
@@ -340,10 +328,10 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       return;
     }
     try {
-      await confirmation.confirm(form.otp);
+      await verifyOtp(confirmation.phone, form.otp);
       setStage("profile");
       setInfo("");
-      sendAnalyticsEvent("OTP Verified", { phone: form.signupCountry + form.phone, authIntent: "Signup" });
+      sendAnalyticsEvent("OTP Verified", { phone: confirmation.phone, authIntent: "Signup" });
     } catch (_err) {
       console.error(_err);
       setErrors({ otp: "Incorrect OTP. Please try again." });
@@ -356,10 +344,9 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     const e = {};
     if (!form.name) e.name = "Enter your name";
     if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) e.email = "Enter valid email";
+    if (!form.address1) e.address1 = "Enter address line 1";
     if (!form.city) e.city = "Enter city";
-    if (!form.occupation) e.occupation = "Select occupation";
-    if (form.occupation === "Others" && !form.otherOccupation) e.otherOccupation = "Enter occupation";
-    if (!form.age || !/^\d+$/.test(form.age)) e.age = "Enter age";
+    if (!form.state) e.state = "Enter state";
     if (!form.pincode || !/^\d{4,10}$/.test(form.pincode)) e.pincode = "Enter valid pincode";
     return e;
   }
@@ -373,7 +360,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
       return;
     }
     try {
-      sendAnalyticsEvent("User Profile Filled", { ...form, occupation: form.occupation === "Others" ? form.otherOccupation : form.occupation });
+      sendAnalyticsEvent("User Profile Filled", { ...form });
       sendAnalyticsEvent("User Created", { ...form });
       sendAnalyticsEvent("Signup Successful", { phone: form.signupCountry + form.phone, email: form.email });
       // Persist to your backend/database/segment here.
@@ -407,22 +394,19 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
     if (isPhone(loginId)) {
       let phoneFull = `${form.loginCountry}${loginId.replace(/\D/g, "")}`;
       try {
-        if (!window.recaptchaVerifierReset) {
-          window.recaptchaVerifierReset = new RecaptchaVerifier(
-            'recaptcha-container-reset',
-            { size: 'invisible' },
-            auth
-          );
+        const resp = await fetch('/api/password-reset/request-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: phoneFull })
+        });
+        if (resp.ok) {
+          setStage('resetOtp');
+          setInfo('OTP sent to your phone');
+          sendAnalyticsEvent('OTP Sent', { phone: phoneFull, authIntent: 'Reset' });
+        } else {
+          const data = await resp.json().catch(() => ({}));
+          setErrors({ loginId: data.error || 'Failed to send OTP.' });
         }
-        const confirmationResult = await signInWithPhoneNumber(
-          auth,
-          phoneFull,
-          window.recaptchaVerifierReset
-        );
-        setConfirmation(confirmationResult);
-        setStage('resetOtp');
-        setInfo('OTP sent to your phone');
-        sendAnalyticsEvent('OTP Sent', { phone: phoneFull, authIntent: 'Reset' });
       } catch (err) {
         setErrors({ loginId: 'Failed to send OTP. ' + (err.message || '') });
       }
@@ -461,10 +445,6 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
           <span style={{ flex: 1 }} />
           <button className="close-btn" onClick={onClose}>&times;</button>
         </div>
-        <div id="recaptcha-container-login" />
-        <div id="recaptcha-container-signup" />
-        <div id="recaptcha-container-social" />
-        <div id="recaptcha-container-reset" />
 
         {/* LOGIN - PHONE/EMAIL */}
         {tab === "login" && stage === "login" && (
@@ -673,6 +653,28 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
               disabled={!!socialPayload}
             />
             <input
+              name="address1"
+              placeholder="Address Line 1"
+              className="auth-input"
+              value={form.address1}
+              onChange={handleChange}
+              required
+            />
+            <input
+              name="address2"
+              placeholder="Address Line 2"
+              className="auth-input"
+              value={form.address2}
+              onChange={handleChange}
+            />
+            <input
+              name="address3"
+              placeholder="Address Line 3"
+              className="auth-input"
+              value={form.address3}
+              onChange={handleChange}
+            />
+            <input
               name="city"
               placeholder="City"
               className="auth-input"
@@ -680,39 +682,13 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
               onChange={handleChange}
               required
             />
-            <select
-              name="occupation"
-              className="auth-input"
-              value={form.occupation}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select Occupation</option>
-              {OCCUPATIONS.map((occ) => (
-                <option value={occ} key={occ}>{occ}</option>
-              ))}
-            </select>
-            {form.occupation === "Others" && (
-              <input
-                name="otherOccupation"
-                placeholder="Your Occupation"
-                maxLength={20}
-                className="auth-input"
-                value={form.otherOccupation}
-                onChange={handleChange}
-                required
-              />
-            )}
             <input
-              name="age"
-              placeholder="Age"
+              name="state"
+              placeholder="State"
               className="auth-input"
-              value={form.age}
+              value={form.state}
               onChange={handleChange}
               required
-              type="number"
-              min={10}
-              max={99}
             />
             <input
               name="pincode"
@@ -723,7 +699,7 @@ export default function AuthModal({ open, onClose, onLogin, defaultTab = "login"
               required
             />
             {errors.general && <div className="auth-error">{errors.general}</div>}
-            <button className="auth-btn" type="submit" disabled={loading}>{loading ? "Saving..." : "Create Account"}</button>
+            <button className="auth-btn" type="submit" disabled={loading}>{loading ? "Saving..." : "Go to Dashboard"}</button>
             {info && <div className="auth-info">{info}</div>}
           </form>
         )}
